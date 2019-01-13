@@ -1,0 +1,23 @@
+[package]
+name = "simple-stock-matcher-experiment"
+version = "0.1.0"
+authors = ["mexus <gilaldpellaeon@gmail.com>"]
+edition = "2018"
+license = "MIT/Apache-2.0"
+publish = false
+
+[dependencies]
+failure = "0.1.5"
+itertools = "0.8.0"
+serde = "1.0.84"
+serde_derive = "1.0.84"
+serde_yaml = "0.8.8"
+structopt = "0.2.14"
+
+[dev-dependencies]
+criterion = "0.2"
+rand = "0.6.4"
+
+[[bench]]
+name = "matching_benchmark"
+harness = false
