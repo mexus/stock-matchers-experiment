@@ -1,7 +1,11 @@
 //! Bids pool.
 
-use crate::bids::{Bid, BidProcessingType, HasOpposite};
-use crate::{key::PoolKey, range::MatchingRange};
+use crate::{
+    bids::{Bid, BidProcessingType, GenericBid},
+    key::PoolKey,
+    range::MatchingRange,
+};
+use log::{debug, info};
 use std::{cmp::Ord, collections::BTreeMap};
 
 #[derive(Clone, Debug)]
@@ -58,7 +62,7 @@ struct MatchingResult<BidKind> {
 
 impl<BidKind> Pool<BidKind>
 where
-    BidKind: HasOpposite,
+    BidKind: GenericBid,
     Bid<BidKind::Opposite>: MatchingRange<BidKind>,
     PoolKey<BidKind>: Ord,
 {
@@ -92,13 +96,20 @@ where
         active_bid: Bid<BidKind::Opposite>,
         ty: BidProcessingType,
     ) -> Option<Bid<BidKind::Opposite>> {
+        debug!(
+            "Processing a {} from user {} (price: {}, size: {})",
+            BidKind::Opposite::kind_name(),
+            active_bid.user_id,
+            active_bid.price,
+            active_bid.amount
+        );
         let suitable_bids = self.get_suitable(&active_bid);
-        match ty {
+        let bid = match ty {
             BidProcessingType::Limit => {
                 let MatchingResult {
                     items_processed,
                     keys_to_drop,
-                } = process_items(suitable_bids, active_bid.amount);
+                } = process_items(suitable_bids, &active_bid);
                 keys_to_drop.into_iter().for_each(|key| {
                     self.0.remove(&key);
                 });
@@ -117,32 +128,62 @@ where
                     let suitable_bids = self.get_suitable(&active_bid);
                     let MatchingResult {
                         items_processed, ..
-                    } = process_items(suitable_bids, active_bid.amount);
+                    } = process_items(suitable_bids, &active_bid);
                     debug_assert_eq!(items_processed, active_bid.amount);
+                } else {
+                    info!(
+                        "[DROP ] Drop a {} from user {} (price: {}, size: {})",
+                        BidKind::Opposite::kind_name(),
+                        active_bid.user_id,
+                        active_bid.price,
+                        active_bid.amount
+                    );
                 }
                 None
             }
             BidProcessingType::ImmediateOrCancel => {
-                let MatchingResult { keys_to_drop, .. } =
-                    process_items(suitable_bids, active_bid.amount);
+                let MatchingResult {
+                    keys_to_drop,
+                    items_processed,
+                } = process_items(suitable_bids, &active_bid);
                 keys_to_drop.into_iter().for_each(|key| {
                     self.0.remove(&key);
                 });
+                if items_processed == 0 {
+                    info!(
+                        "[DROP ] Drop a {} from user {} (price: {}, size: {})",
+                        BidKind::Opposite::kind_name(),
+                        active_bid.user_id,
+                        active_bid.price,
+                        active_bid.amount
+                    );
+                }
                 None
             }
+        };
+        if let Some(active_bid) = bid.as_ref() {
+            info!(
+                "[ ADD ] Add a {} from user {} (price: {}, size: {}) to the pool",
+                BidKind::Opposite::kind_name(),
+                active_bid.user_id,
+                active_bid.price,
+                active_bid.amount
+            );
         }
+        bid
     }
 }
 
 fn process_items<'a, BidKind: 'a>(
     items: impl IntoIterator<Item = (&'a PoolKey<BidKind>, &'a mut Bid<BidKind>)>,
-    amount_needed: u64,
+    active_bid: &Bid<BidKind::Opposite>,
 ) -> MatchingResult<BidKind>
 where
-    BidKind: HasOpposite,
+    BidKind: GenericBid,
     Bid<BidKind::Opposite>: MatchingRange<BidKind>,
     PoolKey<BidKind>: Ord,
 {
+    let amount_needed = active_bid.amount;
     let mut keys_to_drop = Vec::new();
     let mut items_left = amount_needed;
     items.into_iter().for_each(|(key, pool_bid)| {
@@ -150,6 +191,16 @@ where
         if current_items <= items_left {
             items_left -= current_items;
             keys_to_drop.push(*key);
+            let (verb, direction) = BidKind::Opposite::deal_verb_direction();
+            info!(
+                "[TRADE] User {} {} {} items {} user {} for price {}",
+                active_bid.user_id,
+                verb,
+                current_items,
+                direction,
+                pool_bid.user_id,
+                pool_bid.price,
+            );
         } else {
             pool_bid.amount -= items_left;
             items_left = 0;

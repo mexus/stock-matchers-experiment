@@ -19,8 +19,11 @@ pub enum BidProcessingType {
 /// A selling or a buying bid. Its kind depends on the `BidKind` generic argument.
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct Bid<BidKind> {
+    /// Price: either the highest price for a buying bid a the lowest price for a selling bid.
     pub price: u64,
+    /// Amount of items to trade.
     pub amount: u64,
+    /// Bid's user id.
     pub user_id: u64,
     _marker: PhantomData<BidKind>,
 }
@@ -69,15 +72,41 @@ pub struct SellingBid;
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct BuyingBid;
 
-/// A helper trait that allows to match selling and buying bids in compile time.
-pub trait HasOpposite: Sized {
-    type Opposite: HasOpposite<Opposite = Self>;
+/// A helper trait that allows to match selling and buying bids in compile time and provides
+/// some generic methods.
+pub trait GenericBid: Sized {
+    /// The opposite kind of bid.
+    type Opposite: GenericBid<Opposite = Self>;
+
+    /// Verb ("bought"/"sold") and direction ("from"/"to") of the deal.
+    ///
+    /// Use for sentences like "User XX bought YY items from user ...".
+    fn deal_verb_direction() -> (&'static str, &'static str);
+
+    /// Literal name of the bid's kind.
+    fn kind_name() -> &'static str;
 }
 
-impl HasOpposite for BuyingBid {
+impl GenericBid for BuyingBid {
     type Opposite = SellingBid;
+
+    fn deal_verb_direction() -> (&'static str, &'static str) {
+        ("bought", "from")
+    }
+
+    fn kind_name() -> &'static str {
+        "buying bid"
+    }
 }
 
-impl HasOpposite for SellingBid {
+impl GenericBid for SellingBid {
     type Opposite = BuyingBid;
+
+    fn deal_verb_direction() -> (&'static str, &'static str) {
+        ("sold", "to")
+    }
+
+    fn kind_name() -> &'static str {
+        "selling bid"
+    }
 }
