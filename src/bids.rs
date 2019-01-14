@@ -41,26 +41,17 @@ impl<BidKind> Bid<BidKind> {
 
     /// Updates the price.
     pub fn price(self, price: u64) -> Self {
-        Bid {
-            price: price,
-            ..self
-        }
+        Bid { price, ..self }
     }
 
     /// Updates the amount.
     pub fn amount(self, amount: u64) -> Self {
-        Bid {
-            amount: amount,
-            ..self
-        }
+        Bid { amount, ..self }
     }
 
     /// Updates the user id.
     pub fn user_id(self, user_id: u64) -> Self {
-        Bid {
-            user_id: user_id,
-            ..self
-        }
+        Bid { user_id, ..self }
     }
 }
 

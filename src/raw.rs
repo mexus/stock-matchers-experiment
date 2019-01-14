@@ -118,16 +118,16 @@ mod test {
             },
             RawBid {
                 side: Side::Buy,
-                price: 100500,
+                price: 100_500,
                 amount: 104,
                 user_id: 16,
                 processing_type: BidProcessingType::Limit,
             },
             RawBid {
                 side: Side::Buy,
-                price: 904902491,
-                amount: 35923852309,
-                user_id: 1543923349209,
+                price: 904_902_491,
+                amount: 35_923_852_309,
+                user_id: 1_543_923_349_209,
                 processing_type: BidProcessingType::FillOrKill,
             },
             RawBid {
@@ -159,7 +159,7 @@ mod test {
         process_reader(&mut order_book, &data[..]).unwrap();
         let selling_bids: Vec<_> = order_book.sellers.view_bids().collect();
         let buying_bids: Vec<_> = order_book.buyers.view_bids().collect();
-        let expected_buying = [&Bid::empty().price(100500).amount(5).user_id(16)];
+        let expected_buying = [&Bid::empty().price(100_500).amount(5).user_id(16)];
         assert!(selling_bids.is_empty(), "{:?}", selling_bids);
         assert_eq!(buying_bids, expected_buying);
     }
