@@ -5,8 +5,12 @@ use simple_stock_matcher_experiment::{
     Pool,
 };
 
-fn generate_matching_bids(max_price: u64, how_many: usize, user_id: u64) -> Vec<Bid<SellingBid>> {
-    let mut rng = SmallRng::seed_from_u64(1);
+fn generate_matching_bids(
+    rng: &mut SmallRng,
+    max_price: u64,
+    how_many: usize,
+    user_id: u64,
+) -> Vec<Bid<SellingBid>> {
     (0..how_many)
         .map(|_| {
             let price = rng.gen_range(0, max_price + 1);
@@ -17,11 +21,11 @@ fn generate_matching_bids(max_price: u64, how_many: usize, user_id: u64) -> Vec<
 }
 
 fn generate_non_matching_bids(
+    rng: &mut SmallRng,
     min_price: u64,
     how_many: usize,
     user_id: u64,
 ) -> Vec<Bid<SellingBid>> {
-    let mut rng = SmallRng::seed_from_u64(1);
     (0..how_many)
         .map(|_| {
             let price = rng.gen_range(min_price + 1, u64::max_value());
@@ -32,24 +36,30 @@ fn generate_non_matching_bids(
 }
 
 fn generate_test_queue(
+    seed: u64,
     total_amount: usize,
     matching_amount: usize,
     price_level: u64,
     user_id: u64,
 ) -> (u64, Vec<Bid<SellingBid>>) {
-    let matching = generate_matching_bids(price_level, matching_amount, user_id);
+    let mut rng = SmallRng::seed_from_u64(seed);
+    let matching = generate_matching_bids(&mut rng, price_level, matching_amount, user_id);
     let matching_items = matching.iter().map(|bid| bid.amount).sum();
-    let nonmatching =
-        generate_non_matching_bids(price_level + 1, total_amount - matching_amount, user_id);
+    let nonmatching = generate_non_matching_bids(
+        &mut rng,
+        price_level + 1,
+        total_amount - matching_amount,
+        user_id,
+    );
     let mut combined: Vec<_> = matching.into_iter().chain(nonmatching).collect();
-    let mut rng = SmallRng::seed_from_u64(1);
     combined.shuffle(&mut rng);
     (matching_items, combined)
 }
 
 fn match_maker(c: &mut Criterion) {
     let price = 20;
-    let (mathing_items_amount, pool) = generate_test_queue(7000, 20, price, 0);
+    let seed = 10;
+    let (mathing_items_amount, pool) = generate_test_queue(seed, 7000, 20, price, 0);
     let pool = Pool::from(pool);
     let buying_bid = Bid::empty()
         .price(price)
