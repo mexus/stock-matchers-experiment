@@ -1,4 +1,4 @@
-/// A bids cup.
+//! An order book.
 use crate::{
     bids::{Bid, BidProcessingType, BuyingBid, SellingBid},
     pool::Pool,
@@ -6,15 +6,15 @@ use crate::{
 
 /// Bids queues.
 #[derive(Default)]
-pub struct BidsCup {
+pub struct OrderBook {
     pub(crate) sellers: Pool<SellingBid>,
     pub(crate) buyers: Pool<BuyingBid>,
 }
 
-impl BidsCup {
-    /// Initializes an empty bids cup.
+impl OrderBook {
+    /// Initializes an empty order book.
     pub fn empty() -> Self {
-        BidsCup::default()
+        OrderBook::default()
     }
 
     /// Processes a selling bid.

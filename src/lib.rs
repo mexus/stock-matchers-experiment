@@ -18,11 +18,10 @@
 //! additional terms or conditions.
 
 pub mod bids;
-pub mod cup;
 pub mod key;
+mod order_book;
 mod pool;
 mod range;
 mod raw;
 
-pub use crate::pool::Pool;
-pub use crate::raw::process_reader;
+pub use crate::{order_book::OrderBook, pool::Pool, raw::process_reader};

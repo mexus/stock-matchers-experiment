@@ -2,7 +2,7 @@
 
 use crate::{
     bids::{Bid, BidProcessingType},
-    cup::BidsCup,
+    order_book::OrderBook,
 };
 use serde_derive::Deserialize;
 use std::io::Read;
@@ -57,7 +57,7 @@ struct RawBid {
 ///   user_id: 15
 ///   type: ImmediateOrCancel
 /// ```
-pub fn process_reader(cup: &mut BidsCup, r: impl Read) -> Result<(), serde_yaml::Error> {
+pub fn process_reader(order_book: &mut OrderBook, r: impl Read) -> Result<(), serde_yaml::Error> {
     let raw_bids: Vec<RawBid> = serde_yaml::from_reader(r)?;
     raw_bids.into_iter().for_each(|raw_bid| match raw_bid.side {
         Side::Sell => {
@@ -65,14 +65,14 @@ pub fn process_reader(cup: &mut BidsCup, r: impl Read) -> Result<(), serde_yaml:
                 .price(raw_bid.price)
                 .amount(raw_bid.amount)
                 .user_id(raw_bid.user_id);
-            cup.process_selling(selling_bid, raw_bid.processing_type);
+            order_book.process_selling(selling_bid, raw_bid.processing_type);
         }
         Side::Buy => {
             let buying_bid = Bid::empty()
                 .price(raw_bid.price)
                 .amount(raw_bid.amount)
                 .user_id(raw_bid.user_id);
-            cup.process_buying(buying_bid, raw_bid.processing_type);
+            order_book.process_buying(buying_bid, raw_bid.processing_type);
         }
     });
     Ok(())
@@ -155,10 +155,10 @@ mod test {
   user_id: 16
   type: Limit
 "#;
-        let mut cup = BidsCup::default();
-        process_reader(&mut cup, &data[..]).unwrap();
-        let selling_bids: Vec<_> = cup.sellers.view_bids().collect();
-        let buying_bids: Vec<_> = cup.buyers.view_bids().collect();
+        let mut order_book = OrderBook::default();
+        process_reader(&mut order_book, &data[..]).unwrap();
+        let selling_bids: Vec<_> = order_book.sellers.view_bids().collect();
+        let buying_bids: Vec<_> = order_book.buyers.view_bids().collect();
         let expected_buying = [&Bid::empty().price(100500).amount(5).user_id(16)];
         assert!(selling_bids.is_empty(), "{:?}", selling_bids);
         assert_eq!(buying_bids, expected_buying);

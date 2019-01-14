@@ -1,7 +1,7 @@
 use env_logger::fmt::Color;
 use failure::{Fallible, ResultExt};
 use log::{Level, LevelFilter};
-use simple_stock_matcher_experiment::{cup::BidsCup, process_reader};
+use simple_stock_matcher_experiment::{process_reader, OrderBook};
 use std::{fs::File, io::Write, path::PathBuf};
 use structopt::StructOpt;
 
@@ -43,8 +43,8 @@ fn main() -> Fallible<()> {
     init_logging(args.verbose);
     let input = File::open(&args.bids_path)
         .with_context(|e| format!("Can't read {:?}: {}", args.bids_path, e))?;
-    let mut cup = BidsCup::empty();
-    process_reader(&mut cup, input)
+    let mut order_book = OrderBook::empty();
+    process_reader(&mut order_book, input)
         .with_context(|e| format!("Can't process {:?}: {}", args.bids_path, e))?;
     Ok(())
 }
